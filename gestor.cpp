@@ -99,6 +99,7 @@ void Gestor::menu()
 
 void Gestor::buscar()
 {
+    string aux;
     string codigo;
     Usuario usuarioTmp;
     fstream archivoDatos("usuarios.txt", ios::in);
@@ -116,9 +117,28 @@ void Gestor::buscar()
             cout << " Código no encontrado, presione ENTER para continuar..." << endl;
         else
         {
+            cout << "res: " << m_indices[res].referencia << endl;
             archivoDatos.seekg(m_indices[res].referencia);
-            archivoDatos.read((char*)&usuarioTmp, sizeof(usuarioTmp));
-            CLEAR;
+            getline(archivoDatos, aux, '|');
+            cout << aux << endl;
+            usuarioTmp.setCodigo(aux);
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setNombre(aux);
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setApellido(aux);
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setEdad(stoi(aux));
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setGenero(aux[0]);
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setPeso(stof(aux));
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setMasaCorporal(stof(aux));
+            getline(archivoDatos, aux, '|');
+            usuarioTmp.setTipoSangre(aux);
+            getline(archivoDatos, aux);
+            usuarioTmp.setAltura(stof(aux));
+            //CLEAR;
             cout << endl
                     << " Usuario #" << res + 1 << endl
                     << " Código: " << usuarioTmp.getCodigo() << endl
