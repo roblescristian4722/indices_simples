@@ -11,6 +11,7 @@ Gestor::Gestor()
     fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary);
     fstream archivoIndices("indices.bin", ios::out | ios::in | ios::binary);
 
+    m_pos = 0;
     if (!archivoDatos.is_open())
         archivoDatos.open("usuarios.txt", ios::out | ios::trunc | ios::binary);
 
@@ -182,7 +183,6 @@ void Gestor::capturar(const Usuario& usuario)
 {
     string aux = "";
     string aux2 = "";
-    long pos = 0;
     unsigned char tam;
     Gestor::Indice indiceTmp;
     fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary | ios::app);
@@ -190,23 +190,15 @@ void Gestor::capturar(const Usuario& usuario)
     if (!archivoDatos.is_open())
         cerr << "Error en el archivo de salida" << endl;
 
-    cout << "INICIO g: " << archivoDatos.tellg() << endl
-         << "INICIO p: " << archivoDatos.tellp() << endl
-         << "pos: " << pos << endl;
+    // Se crea y añade el índice en memoria
     strcpy(indiceTmp.codigo, usuario.getCodigo().c_str());
+    indiceTmp.referencia = m_pos;
+    m_indices.push_back(indiceTmp);
+    sort(m_indices.begin(), m_indices.end());
+
     /// Se añaden los datos del usuario en el archivo de datos ///
     tam = usuario.getCodigo().length();
     archivoDatos.write((char*)&tam, sizeof(tam));
-
-    // Se crea y añade el índice en memoria
-    cout << "INICIO g: " << ios::beg << endl
-         << "INICIO p: " << archivoDatos.tellp() << endl;
-    strcpy(indiceTmp.codigo, usuario.getCodigo().c_str());
-    pos = archivoDatos.tellg();
-    indiceTmp.referencia = pos - sizeof(tam);
-    m_indices.push_back(indiceTmp);
-    sort(m_indices.begin(), m_indices.end());
-    
     archivoDatos << usuario.getCodigo();
 
     tam = usuario.getNombre().length();
@@ -244,7 +236,8 @@ void Gestor::capturar(const Usuario& usuario)
     archivoDatos.write((char*)&tam, sizeof(tam));
     archivoDatos << aux2;
 
-    cout << archivoDatos.tellg() << endl;
+    m_pos += archivoDatos.tellg();
+    cout << m_pos << endl;
 
     archivoDatos.close();
     actualizarIndices();
@@ -331,8 +324,7 @@ void Gestor::modificar()
     unsigned char tam;
     bool found = false;
     string aux;
-    fstream archivoDatos("usuarios.txt", ios::out | ios::in);
-    fstream archivoIndices("indices.bin", ios::out | ios::binary);
+    fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary);
     fstream tmp("usuarios.tmp", ios::out);
 
     mostrar();
@@ -362,7 +354,6 @@ void Gestor::modificar()
                     << char(OPC_CAMPO_CANCELAR) << ") Cancelar" << endl
                     << "Opción: ";
             cin >> opc;
-            CLEAR;
         }while(opc < OPC_CAMPO_NOM || opc > OPC_CAMPO_CANCELAR);
         
         if (opc != OPC_CAMPO_CANCELAR)
@@ -379,42 +370,42 @@ void Gestor::modificar()
                     aux += auxChar;
                 }
                 
-                if (!codMod)
-                    switch (i)
-                    {
-                        case CAMPO_COD:
-                            usuarioTmp.setCodigo(aux);
-                        break;
-                        case CAMPO_EDAD:
-                            usuarioTmp.setEdad(stoi(aux));
-                        break;
-                        case CAMPO_PESO:
-                            usuarioTmp.setPeso(stof(aux));
-                        break;
-                        case CAMPO_SEXO:
-                            usuarioTmp.setGenero(aux[0]);
-                        break;
-                        case CAMPO_APE:
-                            usuarioTmp.setApellido(aux);
-                        break;
-                        case CAMPO_NOM:
-                            usuarioTmp.setNombre(aux);
-                        break;
-                        case CAMPO_TIPO_SANGRE:
-                            usuarioTmp.setTipoSangre(aux);
-                        break;
-                        case CAMPO_MASA:
-                            usuarioTmp.setMasaCorporal(stof(aux));
-                        break;
-                        case CAMPO_ALTURA:
-                            usuarioTmp.setAltura(stof(aux));
-                            modificar_datos(usuarioTmp, opc);
-                        break;
-                    }
+                switch (i)
+                {
+                    case CAMPO_COD:
+                        usuarioTmp.setCodigo(aux);
+                        cout << aux << endl;
+                    break;
+                    case CAMPO_EDAD:
+                        usuarioTmp.setEdad(stoi(aux));
+                    break;
+                    case CAMPO_PESO:
+                        usuarioTmp.setPeso(stof(aux));
+                    break;
+                    case CAMPO_SEXO:
+                        usuarioTmp.setGenero(aux[0]);
+                    break;
+                    case CAMPO_APE:
+                        usuarioTmp.setApellido(aux);
+                    break;
+                    case CAMPO_NOM:
+                        usuarioTmp.setNombre(aux);
+                    break;
+                    case CAMPO_TIPO_SANGRE:
+                        usuarioTmp.setTipoSangre(aux);
+                    break;
+                    case CAMPO_MASA:
+                        usuarioTmp.setMasaCorporal(stof(aux));
+                    break;
+                    case CAMPO_ALTURA:
+                        usuarioTmp.setAltura(stof(aux));
+                        modificar_datos(usuarioTmp, opc);
+                    break;
+                }
             }
             
             archivoDatos.seekg(0);
-            while (!archivoDatos.eof())
+            for (long cont = 0; !archivoDatos.eof(); cont++)
             {
                 for (int i = 0; i < CANTIDAD_CAMPOS; ++i)
                 {
@@ -428,8 +419,12 @@ void Gestor::modificar()
                         archivoDatos.get(auxChar);
                         aux += auxChar;
                     }
-                    if (!i && aux == usuarioTmp.getCodigo())
-                        found = true;
+                    if (!i)
+                    {
+                        m_indices[cont].referencia = long(archivoDatos.tellg()) - long(sizeof(tam)) - long(tam * sizeof(tam));
+                        if (aux == usuarioTmp.getCodigo())
+                            found = true;
+                    }
                     
                     if (found)
                     {
@@ -455,11 +450,6 @@ void Gestor::modificar()
                                 tmp.write((char*)&tam, sizeof(tam));
                                 tmp << usuarioTmp.getGenero();
                             break;
-                            case CAMPO_ALTURA:
-                                tam = to_string(usuarioTmp.getAltura()).length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << to_string(usuarioTmp.getAltura());
-                                found = false;
                             break;
                             case CAMPO_APE:
                                 tam = usuarioTmp.getApellido().length();
@@ -481,6 +471,11 @@ void Gestor::modificar()
                                 tmp.write((char*)&tam, sizeof(tam));
                                 tmp << to_string(usuarioTmp.getMasaCorporal());
                             break;
+                            case CAMPO_ALTURA:
+                                tam = to_string(usuarioTmp.getAltura()).length();
+                                tmp.write((char*)&tam, sizeof(tam));
+                                tmp << to_string(usuarioTmp.getAltura());
+                                found = false;
                         }
                     }
                     else
@@ -938,10 +933,12 @@ void Gestor::actualizarIndices()
     Gestor::Indice indiceTmp;
     fstream archivoIndices("indices.bin", ios::out | ios::binary);
 
+    indiceTmp.referencia = m_pos;
+    archivoIndices.write((char*)&indiceTmp, sizeof(indiceTmp));
+
     for (size_t i = 0; i < m_indices.size(); ++i)
     {
         indiceTmp = m_indices[i];
-        cout << indiceTmp.codigo << " " << indiceTmp.referencia << endl;
         archivoIndices.write((char*)&indiceTmp, sizeof(indiceTmp));
     }
     archivoIndices.close();
