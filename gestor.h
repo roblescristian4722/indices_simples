@@ -47,7 +47,7 @@ public:
     void menu();
     void capturar(const Usuario& usuario);
     void mostrar();
-    void modificar(){}
+    void modificar();
     void buscar();
     void eliminar();
     void capturar_datos(Usuario& usuario);

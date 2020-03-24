@@ -117,10 +117,8 @@ void Gestor::buscar()
             cout << " Código no encontrado, presione ENTER para continuar..." << endl;
         else
         {
-            cout << "res: " << m_indices[res].referencia << endl;
             archivoDatos.seekg(m_indices[res].referencia);
             getline(archivoDatos, aux, '|');
-            cout << aux << endl;
             usuarioTmp.setCodigo(aux);
             getline(archivoDatos, aux, '|');
             usuarioTmp.setNombre(aux);
@@ -171,8 +169,6 @@ void Gestor::capturar(const Usuario& usuario)
     indiceTmp.referencia = m_posFinal;
     m_indices.push_back(indiceTmp);
 
-    cout << "final: " << m_posFinal << endl;
-
     archivoDatos << usuario.getCodigo() << '|' << usuario.getNombre() << '|'
                  << usuario.getApellido() << '|' << usuario.getEdad() << '|'
                  << usuario.getGenero() << '|' << usuario.getPeso() << '|'
@@ -180,7 +176,6 @@ void Gestor::capturar(const Usuario& usuario)
                  << usuario.getAltura() << '\n';
 
     m_posFinal += archivoDatos.tellg();
-    cout << "final: " << m_posFinal << endl;
     archivoDatos.close();
     actualizarIndices();
     cout << endl
@@ -217,6 +212,7 @@ void Gestor::eliminar()
         m_posFinal = 0;
         while (!archivoDatos.eof())
         {
+            // Se lee el código y la posición de este
             pos = archivoDatos.tellg();
             getline(archivoDatos, aux, '|');
             if (archivoDatos.eof())
@@ -225,16 +221,19 @@ void Gestor::eliminar()
             if (aux != m_indices[elim - 1].codigo)
             {
                 res = busqueda_binaria(m_indices, aux);
+
                 if (!found)
                     m_indices[res].referencia = pos;
                 else
                     m_indices[res].referencia = pos - largElim;
-                cout << pos << endl;
-                cin.get();
-                archivoTmp << aux << '|';
                 
+                // Se escribe el código y su separador en el tmp
+                archivoTmp << aux << '|';
+                // Se lee el resto del registro y se escribe en el tmp
                 getline(archivoDatos, aux);
                 archivoTmp << aux << '\n';
+                // Se le suma el total de bytes del registro a la posición
+                // final del archivo
                 m_posFinal += archivoTmp.tellp();
             }
             else
@@ -261,52 +260,122 @@ void Gestor::eliminar()
     }
 }
 
-/*
+
 void Gestor::modificar()
 {   
     Usuario usuarioTmp;
-    unsigned int i;
+    fstream archivoDatos;
+    fstream archivoTmp;
+    string aux;
+    long mod;
+    int res;
+    long pos;
+    long posMod;
+    bool found;
+    long largMod;
     char opc;
 
-    mostrar();
+    mostrar();    
     if (m_indices.size())
     {
         cout << " Ingrese número del usuario a modificar: ";
-        cin >> i;
+        cin >> mod;
 
-        if (i <= m_indices.size() && i)
+        if (mod <= m_indices.size() && mod)
         {   
             do
             {
                 cout << endl
-                     << " Seleccione el campo a modificar:" << endl;
-                cout << char(CAMPO_NOM) << ") Nombre" << endl
-                     << char(CAMPO_APE) << ") Apellido" << endl
-                     << char(CAMPO_EDAD) << ") Edad" << endl
-                     << char(CAMPO_SEXO) << ") Sexo" << endl
-                     << char(CAMPO_PESO) << ") Peso" << endl
-                     << char(CAMPO_ALTURA) << ") Altura" << endl
-                     << char(CAMPO_CANCELAR) << ") Cancelar" << endl
+                     << " Seleccione el campo a modificar:" << endl
+                     << char(OPC_CAMPO_NOM) << ") Nombre" << endl
+                     << char(OPC_CAMPO_APE) << ") Apellido" << endl
+                     << char(OPC_CAMPO_EDAD) << ") Edad" << endl
+                     << char(OPC_CAMPO_SEXO) << ") Sexo" << endl
+                     << char(OPC_CAMPO_PESO) << ") Peso" << endl
+                     << char(OPC_CAMPO_TIPO_SANGRE) << ") Tipo de sanguíneo" << endl
+                     << char(OPC_CAMPO_ALTURA) << ") Altura" << endl
+                     << char(OPC_CAMPO_CANCELAR) << ") Cancelar" << endl
                      << "Opción: ";
                 cin >> opc;
-            }while(opc < CAMPO_NOM || opc > CAMPO_CANCELAR);
+            }while(opc < OPC_CAMPO_NOM || opc > OPC_CAMPO_CANCELAR);
             
-            if (opc != CAMPO_CANCELAR)
+            if (opc != OPC_CAMPO_CANCELAR)
             {
-                usuarioTmp.setAltura((m_indices.begin() + i - 1)->getAltura());
-                usuarioTmp.setApellido((m_indices.begin() + i - 1)->getApellido());
-                usuarioTmp.setCodigo((m_indices.begin() + i - 1)->getCodigo());
-                usuarioTmp.setEdad((m_indices.begin() + i - 1)->getEdad());
-                usuarioTmp.setGenero((m_indices.begin() + i - 1)->getGenero());
-                usuarioTmp.setNombre((m_indices.begin() + i - 1)->getNombre());
-                usuarioTmp.setPeso((m_indices.begin() + i - 1)->getPeso());
+                m_posFinal = 0;
+                archivoDatos.open("usuarios.txt", ios::in | ios::out);
+                archivoTmp.open("usuarios.tmp", ios::out);
+                while (!archivoDatos.eof())
+                {
+                    getline(archivoDatos, aux, '|');
+                    if (archivoDatos.eof())
+                        break;
 
-                modificar_datos(usuarioTmp, opc);
+                    if (aux != m_indices[mod - 1].codigo)
+                    {
+                        archivoTmp << aux << '|';
 
-                m_indices.erase(m_indices.begin() + i -1);
-                m_indices.insert(m_indices.begin() + i - 1, usuarioTmp);
+                        getline(archivoDatos, aux);
+                        archivoTmp << aux << '\n';
+                    }
+                    else
+                    {
+                        usuarioTmp.setCodigo(aux);
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setNombre(aux);
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setApellido(aux);
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setEdad(stoi(aux));
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setGenero(aux[0]);
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setPeso(stof(aux));
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setMasaCorporal(stof(aux));
+                        getline(archivoDatos, aux, '|');
+                        usuarioTmp.setTipoSangre(aux);
+                        getline(archivoDatos, aux);
+                        usuarioTmp.setAltura(stof(aux));
 
-                escribir();
+                        modificar_datos(usuarioTmp, opc);
+                        
+                        archivoTmp << usuarioTmp.getCodigo() << '|'
+                                   << usuarioTmp.getNombre() << '|'
+                                   << usuarioTmp.getApellido() << '|'
+                                   << usuarioTmp.getEdad() << '|'
+                                   << usuarioTmp.getGenero() << '|'
+                                   << usuarioTmp.getPeso() << '|'
+                                   << usuarioTmp.getMasaCorporal() << '|'
+                                   << usuarioTmp.getTipoSangre() << '|'
+                                   << usuarioTmp.getAltura() << '\n';
+                    }
+                }
+                archivoTmp.close();
+                archivoDatos.close();
+                archivoTmp.open("usuarios.tmp", ios::in | ios::out);
+                archivoDatos.open("usuarios.txt", ios::out);
+                
+                while (!archivoTmp.eof())
+                {
+                    pos = archivoTmp.tellg();
+                    getline(archivoTmp, aux, '|');
+                    if (archivoTmp.eof())
+                        break;
+
+                    res = busqueda_binaria(m_indices, aux);
+                    m_indices[res].referencia = pos;
+                    archivoDatos << aux << '|';
+
+                    getline(archivoTmp, aux);
+                    archivoDatos << aux << '\n';
+                    m_posFinal += archivoTmp.tellp();
+                }
+
+                archivoDatos.close();
+                archivoTmp.close();
+                remove("usuarios.tmp");
+                
+                actualizarIndices();
 
                 cout << endl
                      << " Dato modificado correctamente" << endl
@@ -321,9 +390,8 @@ void Gestor::modificar()
                  << endl;
             cin.get();       
         }
-    m_indices[i].referencia}
+    }
 }
-*/
 
 void Gestor::mostrar()
 {
@@ -340,9 +408,7 @@ void Gestor::mostrar()
     for (size_t i = 0; i < m_indices.size(); i++)
     {
         archivoDatos.seekg(m_indices[i].referencia);
-        cout << m_indices[i].referencia << endl;
         getline(archivoDatos, aux, '|');
-        cout << aux << endl;
         usuarioTmp.setCodigo(aux);
         getline(archivoDatos, aux, '|');
         usuarioTmp.setNombre(aux);
@@ -742,7 +808,6 @@ void Gestor::actualizarIndices()
     sort(m_indices.begin(), m_indices.end());
 
     indiceTmp.referencia = m_posFinal;
-    cout << "finalfinal: " << m_posFinal << endl;
     archivoDatosIndices.write((char *)&indiceTmp, sizeof(indiceTmp));
 
     for (size_t i = 0; i < m_indices.size(); ++i)
