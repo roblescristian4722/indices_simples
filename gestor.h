@@ -7,14 +7,14 @@
     #define CLEAR system("clear")
 #endif
 
-#define CANTIDAD_CAMPOS 9
-#define CHAR_SIZE 1
+#define TOTAL_CAMPOS 9
 
 #include <iostream>
 #include <cstdio>
 #include <fstream>
 #include <vector>
 #include <regex>
+#include <string>
 #include <cstring>
 #include "usuario.h"
 using namespace std;
@@ -22,35 +22,34 @@ using namespace std;
 class Gestor
 {
 public:
-    Gestor();
-    ~Gestor();
-
     struct Indice
     {
-        Indice(){}
-        Indice(const char* cod, long ref);
+        Indice() {}
+        Indice(const char *cod, long ref);
         ~Indice();
 
-        bool operator < (const Indice& other);
-        bool operator > (const Indice& other);
-        bool operator == (const Indice &other);
-        void  operator = (const Indice &other);
-        bool operator < (const string &other);
-        bool operator > (const string &other);
-        bool operator == (const string &other);
+        bool operator<(const Indice &other);
+        bool operator>(const Indice &other);
+        bool operator==(const Indice &other);
+        void operator=(const Indice &other);
+        bool operator<(const string &other);
+        bool operator>(const string &other);
+        bool operator==(const string &other);
 
         // Atributos
         char codigo[9];
         long referencia;
     };
 
+    Gestor();
+    ~Gestor();
+
     void menu();
     void capturar(const Usuario& usuario);
     void mostrar();
-    void modificar();
+    void modificar(){}
     void buscar();
     void eliminar();
-    void escribir();
     void capturar_datos(Usuario& usuario);
     bool codigo_usado(const string codigo);
     void modificar_datos(Usuario& usuario, char i);
@@ -59,7 +58,7 @@ public:
 
 private:
     vector<Gestor::Indice> m_indices;
-    long m_pos;
+    long m_posFinal;
     enum OPC_MENU
     {
         OPC_CAPTURAR = '1',

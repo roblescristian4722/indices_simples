@@ -2,40 +2,38 @@
 
 Gestor::Gestor()
 {
-    Gestor::Indice actualizado;
     Gestor::Indice indiceTmp;
-    string  cadTmp;
-    char charTmp;
-    unsigned char tam;
-    long pos;
-    fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary);
+    string aux;
+    Usuario usuarioTmp;
+    fstream archivoDatos("usuarios.txt", ios::out | ios::in);
     fstream archivoIndices("indices.bin", ios::out | ios::in | ios::binary);
 
-    m_pos = 0;
+    m_posFinal = 0;
+
     if (!archivoDatos.is_open())
-        archivoDatos.open("usuarios.txt", ios::out | ios::trunc | ios::binary);
+        archivoDatos.open("usuarios.txt", ios::out);
 
     if (!archivoIndices.is_open())
     {
-        indiceTmp.referencia = 0;
+        indiceTmp.referencia = m_posFinal;
         archivoIndices.open("indices.bin", ios::out | ios::trunc | ios::binary);
-        archivoIndices.write((char*)&indiceTmp, sizeof(indiceTmp));
+        archivoIndices.write((char *)&indiceTmp, sizeof(indiceTmp));
     }
     else
     {
         archivoIndices.read((char*)&indiceTmp, sizeof(indiceTmp));
-        m_pos = indiceTmp.referencia;
+        m_posFinal = indiceTmp.referencia;
+
         while (!archivoIndices.eof())
         {
             archivoIndices.read((char*)&indiceTmp, sizeof(indiceTmp));
             if (archivoIndices.eof())
                 break;
-            
             m_indices.push_back(indiceTmp);
-        }    
+        }
     }
-    archivoIndices.close();
     archivoDatos.close();
+    archivoIndices.close();
 }
 
 Gestor::~Gestor()
@@ -101,211 +99,139 @@ void Gestor::menu()
 
 void Gestor::buscar()
 {
-    long pos;
-    char auxChar;
-    unsigned char tam;
     string codigo;
-    string aux;
     Usuario usuarioTmp;
-    fstream archivo("usuarios.txt", ios::in);
+    fstream archivoDatos("usuarios.txt", ios::in);
+    int res;
 
     if (!m_indices.size())
-    {
         cout << " Aún no se han ingresado usuarios " << endl << endl
              << " Presione ENTER para continuar..." << endl;
-        return;
-    }
-
-    cout << " Ingrese el código a buscar: ";
-    getline(cin, codigo);
-
-    pos = busqueda_binaria(m_indices, codigo);
-    if (pos == -1)
+    else
     {
-        cout << " Lo sentimos, el código no se ha encontrado." << endl
-             << " Presione ENTER para continuar..." << endl;
-        return;
-    }
-
-    archivo.seekg(pos);
-    for (int i = 0; i < CANTIDAD_CAMPOS; ++i)
-    {
-        archivo.read((char*)&tam, sizeof(tam));
-        if (archivo.eof())
-            break;                
-
-        aux = "";
-        for (int j = 0; j < int(tam); ++j)
+        cout << " Ingrese el código a buscar: ";
+        getline(cin, codigo);
+        res = busqueda_binaria(m_indices, codigo);
+        if (res == -1)
+            cout << " Código no encontrado, presione ENTER para continuar..." << endl;
+        else
         {
-            archivo.get(auxChar);
-            aux += auxChar;
+            archivoDatos.seekg(m_indices[res].referencia);
+            archivoDatos.read((char*)&usuarioTmp, sizeof(usuarioTmp));
+            CLEAR;
+            cout << endl
+                    << " Usuario #" << res + 1 << endl
+                    << " Código: " << usuarioTmp.getCodigo() << endl
+                    << " Nombre: " << usuarioTmp.getNombre() << endl
+                    << " Apellido: " << usuarioTmp.getApellido() << endl
+                    << " Edad: " << usuarioTmp.getEdad() << endl
+                    << " Género: " << usuarioTmp.getGenero() << endl
+                    << " Peso: " << usuarioTmp.getPeso() << endl
+                    << " Altura: " << usuarioTmp.getAltura() << endl
+                    << "----------------------------------------------"
+                    << endl
+                    << endl
+                    << " Presione ENTER para continuar..." << endl;
         }
-        switch (i)
-        {
-            case CAMPO_COD:
-                usuarioTmp.setCodigo(aux);
-            break;
-            case CAMPO_ALTURA:
-                usuarioTmp.setAltura(stof(aux));
-            break;
-            case CAMPO_APE:
-                usuarioTmp.setApellido(aux);
-            break;
-            case CAMPO_NOM:
-                usuarioTmp.setNombre(aux);
-            break;
-            case CAMPO_PESO:
-                usuarioTmp.setPeso(stof(aux));
-            break;
-            case CAMPO_SEXO:
-                usuarioTmp.setGenero(aux[0]);
-            break;
-            case CAMPO_EDAD:
-                usuarioTmp.setEdad(stoi(aux));
-            break;
-        }   
     }
-    CLEAR;
-    cout << endl
-            <<" Código: " << usuarioTmp.getCodigo() << endl
-            << " Nombre: " << usuarioTmp.getNombre() << endl
-            << " Apellido: " << usuarioTmp.getApellido() << endl
-            << " Edad: " << usuarioTmp.getEdad() << endl
-            << " Género: " << usuarioTmp.getGenero() << endl
-            << " Peso: " << usuarioTmp.getPeso() << endl
-            << " Altura: " << usuarioTmp.getAltura() << endl
-            << "----------------------------------------------"
-            << endl << endl
-            << " Presione ENTER para continuar..." << endl;
 }
 
 void Gestor::capturar(const Usuario& usuario)
 {
-    string aux = "";
-    string aux2 = "";
-    unsigned char tam;
+    fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::app);
     Gestor::Indice indiceTmp;
-    fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary | ios::app);
 
     if (!archivoDatos.is_open())
-        cerr << "Error en el archivo de salida" << endl;
-
-    // Se crea y añade el índice en memoria
+    {
+        cout << "Error en el archivoDatos de salida" << endl;
+        return;
+    }
+    
     strcpy(indiceTmp.codigo, usuario.getCodigo().c_str());
-    indiceTmp.referencia = m_pos;
+    indiceTmp.referencia = m_posFinal;
     m_indices.push_back(indiceTmp);
-    sort(m_indices.begin(), m_indices.end());
 
-    /// Se añaden los datos del usuario en el archivo de datos ///
-    tam = usuario.getCodigo().length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getCodigo();
+    cout << "final: " << m_posFinal << endl;
 
-    tam = usuario.getNombre().length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getNombre();
-    
-    tam = usuario.getApellido().length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getApellido();
-    
-    tam = to_string(usuario.getEdad()).length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getEdad();
+    archivoDatos << usuario.getCodigo() << '|' << usuario.getNombre() << '|'
+                 << usuario.getApellido() << '|' << usuario.getEdad() << '|'
+                 << usuario.getGenero() << '|' << usuario.getPeso() << '|'
+                 << usuario.getPeso() << '|' << usuario.getTipoSangre() << '|'
+                 << usuario.getAltura() << '\n';
 
-    tam = CHAR_SIZE;
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getGenero();
-
-    aux = to_string(usuario.getPeso());
-    tam = aux.length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << aux;
-
-    aux = to_string(usuario.getMasaCorporal());
-    tam = aux.length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << aux;
-
-    tam = usuario.getTipoSangre().length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << usuario.getTipoSangre();
-
-    aux2 = to_string(usuario.getAltura());
-    tam = aux2.length();
-    archivoDatos.write((char*)&tam, sizeof(tam));
-    archivoDatos << aux2;
-
-    m_pos += archivoDatos.tellg();
-    cout << m_pos << endl;
-
+    m_posFinal += archivoDatos.tellg();
+    cout << "final: " << m_posFinal << endl;
     archivoDatos.close();
     actualizarIndices();
     cout << endl
-        << " Usuario añadido exitosamente." << endl
-        << " Presione ENTER para continuar..." << endl;
+         << " Usuario añadido exitosamente." << endl
+         << " Presione ENTER para continuar..." << endl;
 }
+
 
 void Gestor::eliminar()
 {
+    unsigned int elim;
+    int res;
+    long largElim;
+    long pos;
     bool found = false;
-    unsigned int opc;
-    unsigned char tam;
-    char auxChar;
+    fstream archivoDatos("usuarios.txt", ios::in);
+    fstream archivoTmp("usuarios.tmp", ios::out);
     string aux;
-    Gestor::Indice indiceTmp;
-    fstream archivoDatos("usuarios.txt", ios::in | ios::out);
-    fstream tmp("usuarios.tmp", ios::out);
+    Usuario usuarioTmp;
 
+    
     mostrar();
-    cout << " Salir = 0" << endl;
     if (!m_indices.size())
     {
-        cout << " Aún no se han ingresado datos. Presione ENTER para continuar" << endl;
+        cout << " Aún no hay datos ingresados." << endl
+             << " presione ENTER para continuar" << endl;
         return;
     }
 
     cout << " Ingrese número del usuario a eliminar: ";
-    cin >> opc;
-
-    if (opc <= m_indices.size() && opc)
+    cin >> elim;
+    if (elim <= m_indices.size() && elim)
     {
+        m_posFinal = 0;
         while (!archivoDatos.eof())
-            for (int i = 0; i < CANTIDAD_CAMPOS; i++)
+        {
+            pos = archivoDatos.tellg();
+            getline(archivoDatos, aux, '|');
+            if (archivoDatos.eof())
+                break;
+
+            if (aux != m_indices[elim - 1].codigo)
             {
-                aux = "";
-                archivoDatos.read((char*)&tam, sizeof(tam));
-                if (archivoDatos.eof())
-                    break;
-                
-                while(tam--)
-                {
-                    archivoDatos.get(auxChar);
-                    aux += auxChar;
-                }
-
-                if (m_indices[opc] == aux && !i)
-                    found = true;
-
-                if (found && i == CANTIDAD_CAMPOS - 1)
-                    found = false;
-
+                res = busqueda_binaria(m_indices, aux);
                 if (!found)
-                {
-                    tmp.write((char*)&tam, sizeof(tam));
-                    tmp << aux;         
-                }
+                    m_indices[res].referencia = pos;
+                else
+                    m_indices[res].referencia = pos - largElim;
+                cout << pos << endl;
+                cin.get();
+                archivoTmp << aux << '|';
+                
+                getline(archivoDatos, aux);
+                archivoTmp << aux << '\n';
+                m_posFinal += archivoTmp.tellp();
             }
-
-        m_indices.erase(m_indices.begin() + opc - 1);
-        tmp.close();
+            else
+            {
+                found = true;
+                m_indices.erase(m_indices.begin() + elim - 1);
+                getline(archivoDatos, aux);
+                largElim = archivoDatos.tellg();
+                largElim -= pos;   
+            }
+        }
         archivoDatos.close();
-        actualizarIndices();
+        archivoTmp.close();
         remove("usuarios.txt");
         rename("usuarios.tmp", "usuarios.txt");
+        actualizarIndices();
     }
-    else if (!opc)
-        return;
     else
     {
         cout << endl
@@ -315,277 +241,129 @@ void Gestor::eliminar()
     }
 }
 
+/*
 void Gestor::modificar()
 {   
     Usuario usuarioTmp;
-    unsigned int codMod;
+    unsigned int i;
     char opc;
-    char auxChar;
-    unsigned char tam;
-    bool found = false;
-    string aux;
-    fstream archivoDatos("usuarios.txt", ios::out | ios::in | ios::binary);
-    fstream tmp("usuarios.tmp", ios::out);
 
     mostrar();
-
-    if (!m_indices.size())
+    if (m_indices.size())
     {
-        cout << " Aún no se han ingresado datos. Presione ENTER para continuar" << endl;
-        return;
-    }
+        cout << " Ingrese número del usuario a modificar: ";
+        cin >> i;
 
-    cout << " Ingrese número del usuario a modificar: ";
-    cin >> codMod;
-
-    if (codMod <= m_indices.size() && codMod)
-    {   
-        do
-        {
-            cout << endl
-                    << " Seleccione el campo a modificar:" << endl
-                    << char(OPC_CAMPO_NOM) << ") Nombre" << endl
-                    << char(OPC_CAMPO_APE) << ") Apellido" << endl
-                    << char(OPC_CAMPO_EDAD) << ") Edad" << endl
-                    << char(OPC_CAMPO_SEXO) << ") Sexo" << endl
-                    << char(OPC_CAMPO_PESO) << ") Peso" << endl
-                    << char(OPC_CAMPO_TIPO_SANGRE) << ") Tipo de sangre" << endl
-                    << char(OPC_CAMPO_ALTURA) << ") Altura" << endl
-                    << char(OPC_CAMPO_CANCELAR) << ") Cancelar" << endl
-                    << "Opción: ";
-            cin >> opc;
-        }while(opc < OPC_CAMPO_NOM || opc > OPC_CAMPO_CANCELAR);
-        
-        if (opc != OPC_CAMPO_CANCELAR)
-        {
-            archivoDatos.seekg(m_indices[codMod - 1].referencia);
-            for (int i = 0; i < CANTIDAD_CAMPOS; ++i)
+        if (i <= m_indices.size() && i)
+        {   
+            do
             {
-                archivoDatos.read((char*)&tam, sizeof(tam));
-                
-                aux = "";
-                for (int j = 0; j < int(tam); ++j)
-                {
-                    archivoDatos.get(auxChar);
-                    aux += auxChar;
-                }
-                
-                switch (i)
-                {
-                    case CAMPO_COD:
-                        usuarioTmp.setCodigo(aux);
-                        cout << aux << endl;
-                    break;
-                    case CAMPO_EDAD:
-                        usuarioTmp.setEdad(stoi(aux));
-                    break;
-                    case CAMPO_PESO:
-                        usuarioTmp.setPeso(stof(aux));
-                    break;
-                    case CAMPO_SEXO:
-                        usuarioTmp.setGenero(aux[0]);
-                    break;
-                    case CAMPO_APE:
-                        usuarioTmp.setApellido(aux);
-                    break;
-                    case CAMPO_NOM:
-                        usuarioTmp.setNombre(aux);
-                    break;
-                    case CAMPO_TIPO_SANGRE:
-                        usuarioTmp.setTipoSangre(aux);
-                    break;
-                    case CAMPO_MASA:
-                        usuarioTmp.setMasaCorporal(stof(aux));
-                    break;
-                    case CAMPO_ALTURA:
-                        usuarioTmp.setAltura(stof(aux));
-                        modificar_datos(usuarioTmp, opc);
-                    break;
-                }
-            }
+                cout << endl
+                     << " Seleccione el campo a modificar:" << endl;
+                cout << char(CAMPO_NOM) << ") Nombre" << endl
+                     << char(CAMPO_APE) << ") Apellido" << endl
+                     << char(CAMPO_EDAD) << ") Edad" << endl
+                     << char(CAMPO_SEXO) << ") Sexo" << endl
+                     << char(CAMPO_PESO) << ") Peso" << endl
+                     << char(CAMPO_ALTURA) << ") Altura" << endl
+                     << char(CAMPO_CANCELAR) << ") Cancelar" << endl
+                     << "Opción: ";
+                cin >> opc;
+            }while(opc < CAMPO_NOM || opc > CAMPO_CANCELAR);
             
-            archivoDatos.seekg(0);
-            for (long cont = 0; !archivoDatos.eof(); cont++)
+            if (opc != CAMPO_CANCELAR)
             {
-                for (int i = 0; i < CANTIDAD_CAMPOS; ++i)
-                {
-                    archivoDatos.read((char*)&tam, sizeof(tam));
-                    if (archivoDatos.eof())
-                        break;
+                usuarioTmp.setAltura((m_indices.begin() + i - 1)->getAltura());
+                usuarioTmp.setApellido((m_indices.begin() + i - 1)->getApellido());
+                usuarioTmp.setCodigo((m_indices.begin() + i - 1)->getCodigo());
+                usuarioTmp.setEdad((m_indices.begin() + i - 1)->getEdad());
+                usuarioTmp.setGenero((m_indices.begin() + i - 1)->getGenero());
+                usuarioTmp.setNombre((m_indices.begin() + i - 1)->getNombre());
+                usuarioTmp.setPeso((m_indices.begin() + i - 1)->getPeso());
 
-                    aux = "";
-                    for (int j = 0; j < int(tam); ++j)
-                    {
-                        archivoDatos.get(auxChar);
-                        aux += auxChar;
-                    }
-                    if (!i)
-                    {
-                        m_indices[cont].referencia = long(archivoDatos.tellg()) - long(sizeof(tam)) - long(tam * sizeof(tam));
-                        if (aux == usuarioTmp.getCodigo())
-                            found = true;
-                    }
-                    
-                    if (found)
-                    {
-                        switch (i)
-                        {
-                            case CAMPO_COD:
-                                tam = usuarioTmp.getCodigo().length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << usuarioTmp.getCodigo();
-                            break;
-                            case CAMPO_EDAD:
-                                tam = to_string(usuarioTmp.getEdad()).length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << to_string(usuarioTmp.getEdad());
-                            break;
-                            case CAMPO_PESO:
-                                tam = to_string(usuarioTmp.getPeso()).length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << to_string(usuarioTmp.getPeso());
-                            break;
-                            case CAMPO_SEXO:
-                                tam = CHAR_SIZE;
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << usuarioTmp.getGenero();
-                            break;
-                            break;
-                            case CAMPO_APE:
-                                tam = usuarioTmp.getApellido().length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << usuarioTmp.getApellido();
-                            break;
-                            case CAMPO_NOM:
-                                tam = usuarioTmp.getNombre().length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << usuarioTmp.getNombre();
-                            break;
-                            case CAMPO_TIPO_SANGRE:
-                                tam = usuarioTmp.getTipoSangre().length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << usuarioTmp.getTipoSangre();
-                            break;
-                            case CAMPO_MASA:
-                                tam = to_string(usuarioTmp.getMasaCorporal()).length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << to_string(usuarioTmp.getMasaCorporal());
-                            break;
-                            case CAMPO_ALTURA:
-                                tam = to_string(usuarioTmp.getAltura()).length();
-                                tmp.write((char*)&tam, sizeof(tam));
-                                tmp << to_string(usuarioTmp.getAltura());
-                                found = false;
-                        }
-                    }
-                    else
-                    {
-                        tmp.write((char*)&tam, sizeof(tam));
-                        tmp << aux;
-                    }
-                }   
+                modificar_datos(usuarioTmp, opc);
+
+                m_indices.erase(m_indices.begin() + i -1);
+                m_indices.insert(m_indices.begin() + i - 1, usuarioTmp);
+
+                escribir();
+
+                cout << endl
+                     << " Dato modificado correctamente" << endl
+                     << " Presione ENTER para continuar..." << endl;
             }
-            tmp.close();
-            archivoDatos.close();
-            remove("usuarios.txt");
-            rename("usuarios.tmp", "usuarios.txt");
-
-            cout << endl
-                    << " Dato modificado correctamente" << endl
-                    << " Presione ENTER para continuar..." << endl;
         }
-    }
-    else if (!codMod)
-        return;
-    else
-    {
-        cout << endl
-                << " Dato inválido, presione ENTER para continuar..."
-                << endl;
-        cin.get();       
-    }
+
+        else
+        {
+            cout << endl
+                 << " Dato inválido, presione ENTER para continuar..."
+                 << endl;
+            cin.get();       
+        }
+    m_indices[i].referencia}
 }
+*/
 
 void Gestor::mostrar()
 {
     fstream archivoDatos("usuarios.txt", ios::in);
-    fstream archivoIndices("indices.bin", ios::in | ios::binary);
     Usuario usuarioTmp;
-    string cadTmp;
-    char charTmp;
-    unsigned char tam;
+    string aux;
 
-    if (!archivoIndices.is_open() || !archivoDatos.is_open())
+    if (!m_indices.size())
     {
-        cout << " Error en el archivo de entrada" << endl;
+        cout << " Aún no se han ingresado usuarios" << endl;
         return;
     }
-    for (size_t j = 0; j < m_indices.size(); ++j)
+
+    for (size_t i = 0; i < m_indices.size(); i++)
     {
-        // Se busca en la posición de memoria que indica el campo
-        // referencia del índice
-        archivoDatos.seekg(m_indices[j].referencia);
+        archivoDatos.seekg(m_indices[i].referencia);
+        cout << m_indices[i].referencia << endl;
+        getline(archivoDatos, aux, '|');
+        cout << aux << endl;
+        usuarioTmp.setCodigo(aux);
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setNombre(aux);
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setApellido(aux);
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setEdad(stoi(aux));
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setGenero(aux[0]);
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setPeso(stof(aux));
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setMasaCorporal(stof(aux));
+        getline(archivoDatos, aux, '|');
+        usuarioTmp.setTipoSangre(aux);
+        getline(archivoDatos, aux);
+        usuarioTmp.setAltura(stof(aux));
 
-        for (int i = 0; i < CANTIDAD_CAMPOS; ++i)
-        {
-            cadTmp = "";
-            archivoDatos.read((char*)&tam, sizeof(tam));
-
-            while (int(tam--))
-            {
-                archivoDatos.get(charTmp);
-                cadTmp += charTmp;
-            }
-            switch (i)
-            {
-                case CAMPO_ALTURA:
-                    usuarioTmp.setAltura(stof(cadTmp));
-                break;
-                case CAMPO_APE:
-                    usuarioTmp.setApellido(cadTmp);
-                break;
-                case CAMPO_NOM:
-                    usuarioTmp.setNombre(cadTmp);
-                break;
-                case CAMPO_COD:
-                    usuarioTmp.setCodigo(cadTmp);
-                break;
-                case CAMPO_PESO:
-                    usuarioTmp.setPeso(stof(cadTmp));
-                break;
-                case CAMPO_SEXO:
-                    usuarioTmp.setGenero(cadTmp[0]);
-                break;
-                case CAMPO_EDAD:
-                    usuarioTmp.setEdad(stoi(cadTmp));
-                break;
-                case CAMPO_MASA:
-                    usuarioTmp.setMasaCorporal(stof(cadTmp));
-                break;
-                case CAMPO_TIPO_SANGRE:
-                    usuarioTmp.setTipoSangre(cadTmp);
-                break;
-            }
-        }
-
-        cout << " Usuario #" << j + 1 << endl
-            << " Código: " << usuarioTmp.getCodigo() << endl
-            << " Nombre: " << usuarioTmp.getNombre() << endl
-            << " Apellido: " << usuarioTmp.getApellido() << endl
-            << " Edad: "   << usuarioTmp.getEdad() << endl
-            << " Género: " << usuarioTmp.getGenero() << endl
-            << " Peso: " << usuarioTmp.getPeso() << endl
-            << " Masa corporal: " << usuarioTmp.getMasaCorporal() << endl
-            << " Tipo de sangre: " << usuarioTmp.getTipoSangre() << endl
-            << " Altura: " << usuarioTmp.getAltura() << endl
-            << "----------------------------------------------"
-            << endl;
+        cout << " Usuario #" << i + 1 << endl
+             << " Código: " << usuarioTmp.getCodigo() << endl
+             << " Nombre: " << usuarioTmp.getNombre() << endl
+             << " Apellido: " << usuarioTmp.getApellido() << endl
+             << " Edad: " << usuarioTmp.getEdad() << endl
+             << " Género: " << usuarioTmp.getGenero() << endl
+             << " Peso: " << usuarioTmp.getPeso() << endl
+             << " Altura: " << usuarioTmp.getAltura() << endl
+             << "----------------------------------------------"
+             << endl;
     }
-    archivoIndices.close();
-    archivoDatos.close();
+    cout << " Presione ENTER para continuar" << endl;
 }
 
-void Gestor::capturar_datos(Usuario& usuario)
+bool Gestor::codigo_usado(const string codigo)
+{
+    for (int i = 0; i < m_indices.size(); i++)
+        if (busqueda_binaria(m_indices, codigo) != -1)
+            return true;
+    return false;
+}
+
+void Gestor::capturar_datos(Usuario &usuario)
 {
     string codigo;
     string nombre;
@@ -603,9 +381,10 @@ void Gestor::capturar_datos(Usuario& usuario)
     regex expApellido("(?:[a-zA-ZñÑ]{4,})(?: [a-zA-ZñÑ]{3,})$");
     regex expGenero("(?:[MF]){1}$");
     regex expTipoSangre("(AB|A|B|O)(?:[+-]{1})$");
-    
+
     cout << " Presione ENTER para continuar e ingrese los siguientes datos"
-         << endl << endl;
+         << endl
+         << endl;
 
     // Obtención de código
     do
@@ -670,28 +449,28 @@ void Gestor::capturar_datos(Usuario& usuario)
         }
         else
             continuar = true;
-    }while(!continuar);
+    } while (!continuar);
 
     do
     {
         CLEAR;
         cout << " Edad (de 12 a 115 años): ";
         cin >> edad;
-    }while(edad > 115 || edad < 12);
+    } while (edad > 115 || edad < 12);
 
     do
     {
         CLEAR;
         cout << " Género (M = masculino | F = femenino): ";
         cin >> genero;
-    } while(!regex_match(genero, expGenero));
+    } while (!regex_match(genero, expGenero));
 
     do
     {
         CLEAR;
         cout << " Peso (de 30 a 300 kg): ";
         cin >> peso;
-    }while(peso > 300 || peso < 30);
+    } while (peso > 300 || peso < 30);
 
     continuar = false;
     cin.ignore();
@@ -709,13 +488,14 @@ void Gestor::capturar_datos(Usuario& usuario)
         }
         else
             continuar = true;
-    }while(!continuar);
+    } while (!continuar);
 
     do
-    {   
+    {
         CLEAR;
         cout << " Altura (de 0.8 a 2.5 mts): ";
-        cin >> altura;;
+        cin >> altura;
+        ;
     } while (altura < 0.8 || altura > 2.5);
 
     usuario.setAltura(altura);
@@ -729,15 +509,7 @@ void Gestor::capturar_datos(Usuario& usuario)
     usuario.setMasaCorporal(peso / (altura * altura));
 }
 
-bool Gestor::codigo_usado(const string codigo)
-{
-    for (int i = 0; i < m_indices.size(); i++)
-        if (m_indices[i] == codigo)
-            return true;
-    return false;
-}
-
-void Gestor::modificar_datos(Usuario& usuario, char i)
+void Gestor::modificar_datos(Usuario &usuario, char i)
 {
     bool continuar = false;
 
@@ -751,168 +523,182 @@ void Gestor::modificar_datos(Usuario& usuario, char i)
     cin.ignore();
     switch (i)
     {
-        case OPC_CAMPO_NOM:
+    case OPC_CAMPO_NOM:
+    {
+        string nombre;
+        do
         {
-            string nombre;
-            do
+            CLEAR;
+            cout << " Nombre: ";
+            getline(cin, nombre);
+            if (!regex_match(nombre, expNombre))
             {
-                CLEAR;
-                cout << " Nombre: ";
-                getline(cin, nombre);
-                if (!regex_match(nombre, expNombre))
-                {
-                    cout << " Error, introducir mínimo un nombre y máximo tres "
-                        << endl
-                        << " (mínimo cuatro letras por nombre)"
-                        << endl
-                        << " Presione ENTER para continuar"
-                        << endl;
-                    cin.get();
-                }
-                else
-                    continuar = true;
-            } while (!continuar);
-            usuario.setNombre(nombre);
-        }
-        break;
+                cout << " Error, introducir mínimo un nombre y máximo tres "
+                     << endl
+                     << " (mínimo cuatro letras por nombre)"
+                     << endl
+                     << " Presione ENTER para continuar"
+                     << endl;
+                cin.get();
+            }
+            else
+                continuar = true;
+        } while (!continuar);
+        usuario.setNombre(nombre);
+    }
+    break;
 
-        case OPC_CAMPO_APE:
+    case OPC_CAMPO_APE:
+    {
+        string apellido;
+        do
         {
-            string apellido;
-            do
+            CLEAR;
+            cout << " Apellido: ";
+            getline(cin, apellido);
+            if (!regex_match(apellido, expApellido))
             {
-                CLEAR;
-                cout << " Apellido: ";
-                getline(cin, apellido);
-                if (!regex_match(apellido, expApellido))
-                {
-                    cout << " Error, se deben de introducir dos apellidos"
-                        << " separados por espacios"
-                        << endl
-                        << " Presione ENTER para continuar"
-                        << endl;
-                    cin.get();
-                }
-                else
-                    continuar = true;
-            }while(!continuar);
-            usuario.setApellido(apellido);
-        }
-        break;
+                cout << " Error, se deben de introducir dos apellidos"
+                     << " separados por espacios"
+                     << endl
+                     << " Presione ENTER para continuar"
+                     << endl;
+                cin.get();
+            }
+            else
+                continuar = true;
+        } while (!continuar);
+        usuario.setApellido(apellido);
+    }
+    break;
 
-        case OPC_CAMPO_EDAD:
+    case OPC_CAMPO_EDAD:
+    {
+        unsigned int edad;
+        do
         {
-            unsigned int edad;
-            do
+            CLEAR;
+            cout << " Edad (de 12 a 115 años): ";
+            cin >> edad;
+        } while (edad > 115 || edad < 12);
+        usuario.setEdad(edad);
+    }
+    break;
+
+    case OPC_CAMPO_PESO:
+    {
+        float peso;
+        do
+        {
+            CLEAR;
+            cout << " Peso (de 30 a 300 kg): ";
+            cin >> peso;
+        } while (peso > 300 || peso < 30);
+        usuario.setPeso(peso);
+        usuario.setMasaCorporal(peso / (usuario.getAltura() * usuario.getAltura()));
+    }
+    break;
+
+    case OPC_CAMPO_SEXO:
+    {
+        string genero;
+        do
+        {
+            CLEAR;
+            cout << " Género (M = masculino | F = femenino): ";
+            cin >> genero;
+        } while (!regex_match(genero, expGenero));
+        usuario.setGenero(genero[0]);
+    }
+    break;
+
+    case OPC_CAMPO_TIPO_SANGRE:
+    {
+        string tipoSangre;
+        do
+        {
+            CLEAR;
+            cout << " Tipo de sangre (AB, A, B, O)(+, -): ";
+            getline(cin, tipoSangre);
+            if (codigo_usado(tipoSangre))
             {
-                CLEAR;
-                cout << " Edad (de 12 a 115 años): ";
-                cin >> edad;
-            }while(edad > 115 || edad < 12);
-            usuario.setEdad(edad);
-        }
-        break;
-
-        case OPC_CAMPO_PESO:
-        {
-            float peso;
-            do
+                cout << endl
+                     << " Error, código en uso. Presione ENTER para continuar";
+                cin.get();
+            }
+            else if (!regex_match(tipoSangre, expTipoSangre))
             {
-                CLEAR;
-                cout << " Peso (de 30 a 300 kg): ";
-                cin >> peso;
-            }while(peso > 300 || peso < 30);
-            usuario.setPeso(peso);
-            usuario.setMasaCorporal(peso / (usuario.getAltura() * usuario.getAltura()));
-        }
-        break;
+                cout << endl
+                     << " Error, vuelva a intentarlo" << endl;
+                cin.get();
+            }
+            else
+                continuar = true;
+        } while (!continuar);
+        usuario.setTipoSangre(tipoSangre);
+    }
+    break;
 
-        case OPC_CAMPO_SEXO:
+    case OPC_CAMPO_ALTURA:
+    {
+        float altura;
+        do
         {
-            string genero;
-            do
-            {
-                CLEAR;
-                cout << " Género (M = masculino | F = femenino): ";
-                cin >> genero;
-            } while(!regex_match(genero, expGenero));
-            usuario.setGenero(genero[0]);
-        }
-        break;
-
-        case OPC_CAMPO_TIPO_SANGRE:
-        {
-            string tipoSangre;
-            do
-            {
-                CLEAR;
-                cout << " Tipo de sangre (AB, A, B, O)(+, -): ";
-                getline(cin, tipoSangre);
-                if (codigo_usado(tipoSangre))
-                {
-                    cout << endl
-                        << " Error, código en uso. Presione ENTER para continuar";
-                    cin.get();
-                }
-                else if (!regex_match(tipoSangre, expTipoSangre))
-                {
-                    cout << endl
-                        << " Error, vuelva a intentarlo" << endl;
-                    cin.get();
-                }
-                else
-                    continuar = true;
-            }while(!continuar);
-            usuario.setTipoSangre(tipoSangre);
-        }
-        break;
-
-        case OPC_CAMPO_ALTURA:
-        {
-            float altura;
-            do
-            {   
-                CLEAR;
-                cout << " Altura (de 0.8 a 2.5 mts): ";
-                cin >> altura;;
-            } while (altura < 0.8 || altura > 2.5);
-            usuario.setAltura(altura);
-            usuario.setMasaCorporal(usuario.getPeso() / (altura * altura));
-        }
-        break;
+            CLEAR;
+            cout << " Altura (de 0.8 a 2.5 mts): ";
+            cin >> altura;
+            ;
+        } while (altura < 0.8 || altura > 2.5);
+        usuario.setAltura(altura);
+        usuario.setMasaCorporal(usuario.getPeso() / (altura * altura));
+    }
+    break;
     }
 }
 
 // INDICES
-Gestor::Indice::Indice(const char* cod, long ref)
+Gestor::Indice::Indice(const char *cod, long ref)
 {
     strcpy(codigo, cod);
     referencia = ref;
 }
 
 Gestor::Indice::~Indice()
-{}
+{
+}
 
-bool Gestor::Indice::operator < (const Gestor::Indice &other)
-{ return (strcmp(this->codigo, other.codigo) < 0) ? true : false; }
-bool Gestor::Indice::operator > (const Gestor::Indice &other)
-{ return (strcmp(this->codigo, other.codigo) > 0) ? true : false; }
-bool Gestor::Indice::operator == (const Gestor::Indice &other)
-{ return !strcmp(this->codigo, other.codigo); }
-bool Gestor::Indice::operator < (const string &other)
-{ return string(this->codigo) < other; }
-bool Gestor::Indice::operator > (const string &other)
-{ return string(this->codigo) > other; }
-bool Gestor::Indice::operator == (const string &other)
-{ return string(this->codigo) == other; }
-void Gestor::Indice::operator = (const Indice &other)
+bool Gestor::Indice::operator<(const Gestor::Indice &other)
+{
+    return (strcmp(this->codigo, other.codigo) < 0) ? true : false;
+}
+bool Gestor::Indice::operator>(const Gestor::Indice &other)
+{
+    return (strcmp(this->codigo, other.codigo) > 0) ? true : false;
+}
+bool Gestor::Indice::operator==(const Gestor::Indice &other)
+{
+    return !strcmp(this->codigo, other.codigo);
+}
+bool Gestor::Indice::operator<(const string &other)
+{
+    return string(this->codigo) < other;
+}
+bool Gestor::Indice::operator>(const string &other)
+{
+    return string(this->codigo) > other;
+}
+bool Gestor::Indice::operator==(const string &other)
+{
+    return string(this->codigo) == other;
+}
+void Gestor::Indice::operator=(const Indice &other)
 {
     strcpy(this->codigo, other.codigo);
     this->referencia = other.referencia;
 }
 
 int Gestor::busqueda_binaria(vector<Gestor::Indice> &vec, string dato)
-{ 
+{
     int l = 0;
     int r = int(vec.size() - 1);
     while (l <= r)
@@ -931,15 +717,18 @@ int Gestor::busqueda_binaria(vector<Gestor::Indice> &vec, string dato)
 void Gestor::actualizarIndices()
 {
     Gestor::Indice indiceTmp;
-    fstream archivoIndices("indices.bin", ios::out | ios::binary);
+    fstream archivoDatosIndices("indices.bin", ios::out | ios::binary | ios::trunc);
 
-    indiceTmp.referencia = m_pos;
-    archivoIndices.write((char*)&indiceTmp, sizeof(indiceTmp));
+    sort(m_indices.begin(), m_indices.end());
+
+    indiceTmp.referencia = m_posFinal;
+    cout << "finalfinal: " << m_posFinal << endl;
+    archivoDatosIndices.write((char *)&indiceTmp, sizeof(indiceTmp));
 
     for (size_t i = 0; i < m_indices.size(); ++i)
     {
         indiceTmp = m_indices[i];
-        archivoIndices.write((char*)&indiceTmp, sizeof(indiceTmp));
+        archivoDatosIndices.write((char *)&indiceTmp, sizeof(indiceTmp));
     }
-    archivoIndices.close();
+    archivoDatosIndices.close();
 }
