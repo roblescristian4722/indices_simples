@@ -145,6 +145,8 @@ void Gestor::buscar()
                     << " Edad: " << usuarioTmp.getEdad() << endl
                     << " Género: " << usuarioTmp.getGenero() << endl
                     << " Peso: " << usuarioTmp.getPeso() << endl
+                    << " Masa corporal: " << usuarioTmp.getMasaCorporal() << endl
+                    << " Tipo sanguíneo: " << usuarioTmp.getTipoSangre() << endl
                     << " Altura: " << usuarioTmp.getAltura() << endl
                     << "----------------------------------------------"
                     << endl
@@ -217,10 +219,16 @@ void Gestor::eliminar()
             getline(archivoDatos, aux, '|');
             if (archivoDatos.eof())
                 break;
-
-            if (aux != m_indices[elim - 1].codigo)
+            cout << "aux: " << aux << endl
+                 << "elim: " << m_indices[elim - 1].codigo << endl;
+            cin.get();
+            if (aux != m_indices[elim - 1].codigo || found)
             {
+                cout << "aux: " << aux;
                 res = busqueda_binaria(m_indices, aux);
+                cout << "pos: " << pos;
+                cin.get();
+                cin.ignore();
 
                 if (!found)
                     m_indices[res].referencia = pos;
@@ -434,6 +442,8 @@ void Gestor::mostrar()
              << " Edad: " << usuarioTmp.getEdad() << endl
              << " Género: " << usuarioTmp.getGenero() << endl
              << " Peso: " << usuarioTmp.getPeso() << endl
+             << " Masa corporal: " << usuarioTmp.getMasaCorporal() << endl
+             << " Tipo sanguíneo: " << usuarioTmp.getTipoSangre() << endl
              << " Altura: " << usuarioTmp.getAltura() << endl
              << "----------------------------------------------"
              << endl;
@@ -462,11 +472,11 @@ void Gestor::capturar_datos(Usuario &usuario)
     bool continuar = false;
 
     // Expresiones regulares
-    regex expCodigo("([1-9]{1}[0-9]{8})$");
-    regex expNombre("(?:[a-zA-ZñÑ]{4,})(?: [a-zA-ZñÑ]{4,})?{1,2}");
-    regex expApellido("(?:[a-zA-ZñÑ]{4,})(?: [a-zA-ZñÑ]{3,})$");
-    regex expGenero("(?:[MF]){1}$");
-    regex expTipoSangre("(AB|A|B|O)(?:[+-]{1})$");
+    regex expCodigo("[1-9]{1}[0-9]{8}$");
+    regex expNombre("([a-zA-ZñÑ]{3,})( [a-zA-ZñÑ]{2,})?{1,3}$");
+    regex expApellido("([a-zA-ZñÑ]{3,})( [a-zA-ZñÑ]{3,})$");
+    regex expGenero("[MFmf]$");
+    regex expTipoSangre("(AB|ab|A|a|B|b|O|o)([+-]{1})$");
 
     cout << " Presione ENTER para continuar e ingrese los siguientes datos"
          << endl
@@ -514,7 +524,11 @@ void Gestor::capturar_datos(Usuario &usuario)
             cin.get();
         }
         else
+        {
+            for (auto &x: nombre)
+                x = toupper(x);
             continuar = true;
+        }
     } while (!continuar);
     continuar = false;
 
@@ -534,7 +548,11 @@ void Gestor::capturar_datos(Usuario &usuario)
             cin.get();
         }
         else
+        {
+            for (auto &x: apellido)
+                x = toupper(x);
             continuar = true;
+        }
     } while (!continuar);
 
     do
@@ -549,6 +567,7 @@ void Gestor::capturar_datos(Usuario &usuario)
         CLEAR;
         cout << " Género (M = masculino | F = femenino): ";
         cin >> genero;
+        genero[0] = toupper(genero[0]);
     } while (!regex_match(genero, expGenero));
 
     do
@@ -573,7 +592,11 @@ void Gestor::capturar_datos(Usuario &usuario)
             cin.get();
         }
         else
+        {
+            for (auto &x : tipoSangre)
+                x = toupper(x);
             continuar = true;
+        }
     } while (!continuar);
 
     do
@@ -581,7 +604,6 @@ void Gestor::capturar_datos(Usuario &usuario)
         CLEAR;
         cout << " Altura (de 0.8 a 2.5 mts): ";
         cin >> altura;
-        ;
     } while (altura < 0.8 || altura > 2.5);
 
     usuario.setAltura(altura);
@@ -628,7 +650,11 @@ void Gestor::modificar_datos(Usuario &usuario, char i)
                 cin.get();
             }
             else
+            {
+                for (auto &x : nombre)
+                    x = toupper(x);
                 continuar = true;
+            }
         } while (!continuar);
         usuario.setNombre(nombre);
     }
@@ -652,7 +678,11 @@ void Gestor::modificar_datos(Usuario &usuario, char i)
                 cin.get();
             }
             else
+            {
+                for (auto &x : apellido)
+                    x = toupper(x);
                 continuar = true;
+            }
         } while (!continuar);
         usuario.setApellido(apellido);
     }
@@ -693,6 +723,7 @@ void Gestor::modificar_datos(Usuario &usuario, char i)
             CLEAR;
             cout << " Género (M = masculino | F = femenino): ";
             cin >> genero;
+            genero[0] = toupper(genero[0]);
         } while (!regex_match(genero, expGenero));
         usuario.setGenero(genero[0]);
     }
@@ -719,7 +750,11 @@ void Gestor::modificar_datos(Usuario &usuario, char i)
                 cin.get();
             }
             else
+            {
+                for (auto &x : tipoSangre)
+                    x = toupper(x);
                 continuar = true;
+            }
         } while (!continuar);
         usuario.setTipoSangre(tipoSangre);
     }
