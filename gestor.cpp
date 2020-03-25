@@ -174,7 +174,7 @@ void Gestor::capturar(const Usuario& usuario)
     archivoDatos << usuario.getCodigo() << '|' << usuario.getNombre() << '|'
                  << usuario.getApellido() << '|' << usuario.getEdad() << '|'
                  << usuario.getGenero() << '|' << usuario.getPeso() << '|'
-                 << usuario.getPeso() << '|' << usuario.getTipoSangre() << '|'
+                 << usuario.getMasaCorporal() << '|' << usuario.getTipoSangre() << '|'
                  << usuario.getAltura() << '\n';
 
     m_posFinal += archivoDatos.tellg();
@@ -219,16 +219,10 @@ void Gestor::eliminar()
             getline(archivoDatos, aux, '|');
             if (archivoDatos.eof())
                 break;
-            cout << "aux: " << aux << endl
-                 << "elim: " << m_indices[elim - 1].codigo << endl;
-            cin.get();
+
             if (aux != m_indices[elim - 1].codigo || found)
             {
-                cout << "aux: " << aux;
                 res = busqueda_binaria(m_indices, aux);
-                cout << "pos: " << pos;
-                cin.get();
-                cin.ignore();
 
                 if (!found)
                     m_indices[res].referencia = pos;
@@ -622,11 +616,11 @@ void Gestor::modificar_datos(Usuario &usuario, char i)
     bool continuar = false;
 
     // Expresiones regulares
-    regex expCodigo("([1-9]{1}[0-9]{8})$");
-    regex expNombre("(?:[a-zA-ZñÑ]{4,})(?: [a-zA-ZñÑ]{4,})?{1,2}");
-    regex expApellido("(?:[a-zA-ZñÑ]{4,})+(?: [a-zA-ZñÑ]{3,})$");
-    regex expGenero("(?:[mMfF]){1}$");
-    regex expTipoSangre("(AB|A|B|O)(?:[+-]{1})$");
+    regex expCodigo("[1-9]{1}[0-9]{8}$");
+    regex expNombre("([a-zA-ZñÑ]{3,})( [a-zA-ZñÑ]{2,})?{1,3}$");
+    regex expApellido("([a-zA-ZñÑ]{3,})( [a-zA-ZñÑ]{3,})$");
+    regex expGenero("[MFmf]$");
+    regex expTipoSangre("(AB|ab|A|a|B|b|O|o)([+-]{1})$");
 
     cin.ignore();
     switch (i)
